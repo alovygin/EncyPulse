@@ -1,4 +1,4 @@
-using EncyExtension;
+using EncyPulse;
 
 // The namespace and class name must stay CAMAPI.ExtensionFactory — that is how ENCY finds
 // the entry point of the library.
@@ -26,14 +26,14 @@ public class ExtensionFactory : IExtensionFactory
 
     /// <summary>
     /// Create an extension instance by its identifier. The identifier must match the "id"
-    /// declared in EncyExtension.settings.json.
+    /// declared in EncyPulse.settings.json.
     /// </summary>
     public IExtension? Create(string extensionIdent, out TResultStatus ret)
     {
         try
         {
             ret = default;
-            if (extensionIdent == "Extension.Utility.EncyExtension")
+            if (extensionIdent == "Extension.Utility.EncyPulse")
                 return new UtilityExtension();
             throw new Exception("Unknown extension identifier: " + extensionIdent);
         }

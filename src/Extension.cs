@@ -5,7 +5,7 @@ using CAMAPI.Extensions;
 using CAMAPI.Project;
 using CAMAPI.ResultStatus;
 
-namespace EncyExtension;
+namespace EncyPulse;
 
 /// <summary>
 /// Example utility: dumps the active project's path and id into a text file and opens it.
@@ -40,7 +40,7 @@ public class UtilityExtension : IExtension, IExtensionUtility
 
             var tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".txt");
             File.WriteAllText(tempFile,
-                "Hello from EncyExtension!" + Environment.NewLine +
+                "Hello from EncyPulse!" + Environment.NewLine +
                 "Project file path: " + filePath + Environment.NewLine +
                 "Project id: " + id);
             Process.Start("notepad.exe", tempFile);

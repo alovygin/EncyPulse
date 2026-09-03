@@ -1,4 +1,4 @@
-# EncyExtension
+# EncyPulse
 
 This file becomes the README on your extension's store card. Describe here:
 

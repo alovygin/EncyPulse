@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="EncyExtension.settings.json" CopyToOutputDirectory="Always" />
+    <None Update="EncyPulse.settings.json" CopyToOutputDirectory="Always" />
     <None Update="package.info.json" CopyToOutputDirectory="Always" />
     <None Update="readme.md" CopyToOutputDirectory="Always" />
     <!-- Pictures of the extension: the store turns them into the card's screenshots and takes the
