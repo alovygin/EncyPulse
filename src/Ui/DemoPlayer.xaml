@@ -1,0 +1,184 @@
+<UserControl x:Class="EncyPulse.Ui.DemoPlayer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="340">
+  <Grid>
+    <!-- Real recording, when a welcome.mp4 ships with the extension -->
+    <Border x:Name="VideoHost" CornerRadius="10" Background="#000000" ClipToBounds="True" Visibility="Collapsed">
+      <Grid>
+        <MediaElement x:Name="Video" LoadedBehavior="Manual" UnloadedBehavior="Stop" IsMuted="True" Stretch="Uniform"
+                      MediaEnded="Video_MediaEnded" MediaFailed="Video_MediaFailed"/>
+        <Button x:Name="PlayPause" Style="{DynamicResource Ghost}" Content="Pause" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Padding="12,5" Click="PlayPause_Click"/>
+      </Grid>
+    </Border>
+
+    <!-- Illustration: ENCY calculates, finishes, the alert reaches the phone, the phone mirrors it to the watch -->
+    <Border x:Name="Illustration" CornerRadius="10" Background="{DynamicResource Surface2Brush}" ClipToBounds="True">
+      <Grid>
+        <Viewbox Stretch="Uniform" Margin="14">
+          <Canvas Width="860" Height="320">
+
+            <!-- ===== Workstation with ENCY ===== -->
+            <Border Canvas.Left="20" Canvas.Top="30" Width="330" Height="210" CornerRadius="8" Background="#15181B" BorderBrush="#3A4045" BorderThickness="3"/>
+            <Rectangle Canvas.Left="165" Canvas.Top="240" Width="40" Height="26" Fill="#3A4045"/>
+            <Rectangle Canvas.Left="120" Canvas.Top="264" Width="130" Height="8" RadiusX="4" RadiusY="4" Fill="#3A4045"/>
+            <!-- screen -->
+            <Canvas Canvas.Left="27" Canvas.Top="37" Width="316" Height="196" ClipToBounds="True">
+              <Rectangle Width="316" Height="196" Fill="#1B1E21"/>
+              <!-- title bar -->
+              <Rectangle Width="316" Height="20" Fill="#141618"/>
+              <Border Canvas.Left="7" Canvas.Top="4" Width="12" Height="12" CornerRadius="3" Background="#22C47E"/>
+              <TextBlock Canvas.Left="24" Canvas.Top="4" Text="ENCY" Foreground="#E9EBED" FontSize="9" FontWeight="SemiBold"/>
+              <TextBlock Canvas.Left="120" Canvas.Top="5" Text="Blade.stcp" Foreground="#9AA1A7" FontSize="8"/>
+              <!-- tree panel -->
+              <Border Canvas.Left="6" Canvas.Top="26" Width="112" Height="164" CornerRadius="6" Background="#2A2E32"/>
+              <Border Canvas.Left="12" Canvas.Top="31" Width="100" Height="14" CornerRadius="4" Background="#393E43"/>
+              <TextBlock Canvas.Left="20" Canvas.Top="33" Text="Machining" Foreground="#E9EBED" FontSize="7" FontWeight="SemiBold"/>
+              <TextBlock Canvas.Left="12" Canvas.Top="52" Text="DMTG VMC850" Foreground="#E9EBED" FontSize="7"/>
+              <TextBlock Canvas.Left="20" Canvas.Top="66" Text="Roughing 01" Foreground="#B4BBC1" FontSize="7"/>
+              <TextBlock Canvas.Left="20" Canvas.Top="80" Text="Finishing 02" Foreground="#B4BBC1" FontSize="7"/>
+              <TextBlock Canvas.Left="20" Canvas.Top="94" Text="Left hub" Foreground="#B4BBC1" FontSize="7"/>
+              <TextBlock Canvas.Left="20" Canvas.Top="108" Text="Right hub" Foreground="#B4BBC1" FontSize="7"/>
+              <TextBlock Canvas.Left="20" Canvas.Top="122" Text="Edges" Foreground="#B4BBC1" FontSize="7"/>
+              <!-- operation status dots: turn green one by one -->
+              <Ellipse x:Name="Dot1" Canvas.Left="100" Canvas.Top="68" Width="6" Height="6"><Ellipse.Fill><SolidColorBrush Color="#4B5259"/></Ellipse.Fill></Ellipse>
+              <Ellipse x:Name="Dot2" Canvas.Left="100" Canvas.Top="82" Width="6" Height="6"><Ellipse.Fill><SolidColorBrush Color="#4B5259"/></Ellipse.Fill></Ellipse>
+              <Ellipse x:Name="Dot3" Canvas.Left="100" Canvas.Top="96" Width="6" Height="6"><Ellipse.Fill><SolidColorBrush Color="#4B5259"/></Ellipse.Fill></Ellipse>
+              <Ellipse x:Name="Dot4" Canvas.Left="100" Canvas.Top="110" Width="6" Height="6"><Ellipse.Fill><SolidColorBrush Color="#4B5259"/></Ellipse.Fill></Ellipse>
+              <Ellipse x:Name="Dot5" Canvas.Left="100" Canvas.Top="124" Width="6" Height="6"><Ellipse.Fill><SolidColorBrush Color="#4B5259"/></Ellipse.Fill></Ellipse>
+              <!-- viewport: a real part and toolpath from ENCY -->
+              <Border Canvas.Left="124" Canvas.Top="26" Width="186" Height="164" CornerRadius="4" ClipToBounds="True" Background="#C8BBAB">
+                <Image Source="pack://application:,,,/EncyPulse;component/media/part.png" Stretch="UniformToFill"/>
+              </Border>
+              <!-- progress bar -->
+              <Border x:Name="ProgressPanel" Canvas.Left="134" Canvas.Top="150" Width="166" Height="30" CornerRadius="6" Background="#2A2E32" Opacity="1">
+                <Canvas>
+                  <TextBlock x:Name="ProgressText" Canvas.Left="8" Canvas.Top="4" Text="Calculating Roughing 01…" Foreground="#E9EBED" FontSize="7"/>
+                  <Rectangle Canvas.Left="8" Canvas.Top="18" Width="150" Height="5" RadiusX="2.5" RadiusY="2.5" Fill="#3A4045"/>
+                  <Rectangle x:Name="ProgressFill" Canvas.Left="8" Canvas.Top="18" Width="0" Height="5" RadiusX="2.5" RadiusY="2.5" Fill="#22C47E"/>
+                </Canvas>
+              </Border>
+              <!-- done badge -->
+              <Border x:Name="DonePanel" Canvas.Left="134" Canvas.Top="150" Width="166" Height="30" CornerRadius="6" Background="#1F3A31" BorderBrush="#22C47E" BorderThickness="1" Opacity="0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                  <Path Data="M2,7 L6,11 L14,2" Stroke="#22C47E" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Width="16" Height="13" Stretch="None" Margin="0,0,6,0"/>
+                  <TextBlock Text="Calculation completed" Foreground="#E9EBED" FontSize="8" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Border>
+            </Canvas>
+            <TextBlock Canvas.Left="20" Canvas.Top="284" Width="330" TextAlignment="Center" Text="ENCY calculates the toolpaths" Foreground="{DynamicResource Ink2Brush}" FontSize="9"/>
+
+            <!-- ===== flow 1: workstation → phone ===== -->
+            <Path x:Name="Arrow1" Data="M360,140 C 395,140 405,140 440,140 M432,134 L440,140 L432,146" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.8" StrokeDashArray="3 3" Fill="{x:Null}" Opacity="0.25"/>
+            <TextBlock x:Name="Arrow1Text" Canvas.Left="352" Canvas.Top="116" Width="96" TextAlignment="Center" Text="alert sent" Foreground="{DynamicResource Ink2Brush}" FontSize="8.5" Opacity="0.25"/>
+
+            <!-- ===== Phone ===== -->
+            <Border Canvas.Left="452" Canvas.Top="14" Width="140" Height="270" CornerRadius="22" Background="#15181B" BorderBrush="#3A4045" BorderThickness="3"/>
+            <Border Canvas.Left="461" Canvas.Top="23" Width="122" Height="252" CornerRadius="16" Background="#0B0D0F"/>
+            <Border Canvas.Left="504" Canvas.Top="28" Width="36" Height="9" CornerRadius="4.5" Background="#1F2428"/>
+            <TextBlock Canvas.Left="461" Canvas.Top="62" Width="122" TextAlignment="Center" Text="10:42" Foreground="#E9EBED" FontSize="30" FontWeight="Light"/>
+            <TextBlock Canvas.Left="461" Canvas.Top="98" Width="122" TextAlignment="Center" Text="Tuesday, 2 September" Foreground="#9AA1A7" FontSize="8"/>
+            <Border x:Name="PhoneCard" Canvas.Left="466" Canvas.Top="120" Width="112" CornerRadius="11" Background="#2A2E32" Padding="7,6" Opacity="0">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                  <Border Width="11" Height="11" CornerRadius="3" Background="{DynamicResource AccentBrush}" Margin="0,0,5,0"/>
+                  <TextBlock Text="ENCY PULSE" Foreground="#9AA1A7" FontSize="6.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                  <TextBlock Text="now" Foreground="#9AA1A7" FontSize="6.5" Margin="18,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Project calculation completed." Foreground="#E9EBED" FontSize="8" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                <TextBlock Text="Blade.stcp · 5 operations · 52 m 07 s" Foreground="#B4BBC1" FontSize="7" TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+            <TextBlock Canvas.Left="440" Canvas.Top="292" Width="164" TextAlignment="Center" Text="iPhone, locked" Foreground="{DynamicResource Ink2Brush}" FontSize="9"/>
+
+            <!-- ===== flow 2: phone → watch ===== -->
+            <Path x:Name="Arrow2" Data="M602,140 C 640,140 650,140 688,140 M680,134 L688,140 L680,146" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.8" StrokeDashArray="3 3" Fill="{x:Null}" Opacity="0.25"/>
+            <TextBlock x:Name="Arrow2Text" Canvas.Left="596" Canvas.Top="116" Width="100" TextAlignment="Center" Text="mirrored" Foreground="{DynamicResource Ink2Brush}" FontSize="8.5" Opacity="0.25"/>
+
+            <!-- ===== Watch ===== -->
+            <Rectangle Canvas.Left="723" Canvas.Top="6" Width="64" Height="56" RadiusX="8" RadiusY="8" Fill="#3A4045"/>
+            <Rectangle Canvas.Left="723" Canvas.Top="232" Width="64" Height="56" RadiusX="8" RadiusY="8" Fill="#3A4045"/>
+            <Border Canvas.Left="697" Canvas.Top="56" Width="116" Height="184" CornerRadius="28" Background="#15181B" BorderBrush="#3A4045" BorderThickness="3"/>
+            <Border Canvas.Left="818" Canvas.Top="112" Width="8" Height="32" CornerRadius="3" Background="#3A4045"/>
+            <Border Canvas.Left="706" Canvas.Top="65" Width="98" Height="166" CornerRadius="22" Background="#0B0D0F"/>
+            <TextBlock Canvas.Left="706" Canvas.Top="82" Width="98" TextAlignment="Center" Text="10:42" Foreground="#E9EBED" FontSize="20" FontWeight="Light"/>
+            <Border x:Name="WatchCard" Canvas.Left="712" Canvas.Top="112" Width="86" CornerRadius="13" Background="#2A2E32" Padding="7,7" Opacity="0">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                  <Border Width="11" Height="11" CornerRadius="3" Background="{DynamicResource AccentBrush}" Margin="0,0,5,0"/>
+                  <TextBlock Text="ENCY Pulse" Foreground="#9AA1A7" FontSize="6.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Project calculation completed." Foreground="#E9EBED" FontSize="8" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,0"/>
+              </StackPanel>
+            </Border>
+            <TextBlock Canvas.Left="686" Canvas.Top="292" Width="140" TextAlignment="Center" Text="Apple Watch" Foreground="{DynamicResource Ink2Brush}" FontSize="9"/>
+          </Canvas>
+        </Viewbox>
+        <TextBlock x:Name="IllustrationCaption" Style="{DynamicResource Hint}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12,8" Text="Illustration"/>
+      </Grid>
+    </Border>
+  </Grid>
+
+  <UserControl.Triggers>
+    <EventTrigger RoutedEvent="Loaded">
+      <BeginStoryboard>
+        <Storyboard RepeatBehavior="Forever" Duration="0:0:13">
+          <!-- 0–5 s: the calculation runs; the bar fills and operations turn green one by one -->
+          <DoubleAnimation Storyboard.TargetName="ProgressFill" Storyboard.TargetProperty="Width" BeginTime="0:0:0.3" From="0" To="150" Duration="0:0:4.7"/>
+          <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ProgressText" Storyboard.TargetProperty="Text">
+            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="Calculating Roughing 01…"/>
+            <DiscreteObjectKeyFrame KeyTime="0:0:1.2" Value="Calculating Finishing 02…"/>
+            <DiscreteObjectKeyFrame KeyTime="0:0:2.2" Value="Calculating Left hub…"/>
+            <DiscreteObjectKeyFrame KeyTime="0:0:3.2" Value="Calculating Right hub…"/>
+            <DiscreteObjectKeyFrame KeyTime="0:0:4.1" Value="Calculating Edges…"/>
+          </ObjectAnimationUsingKeyFrames>
+          <ColorAnimationUsingKeyFrames Storyboard.TargetName="Dot1" Storyboard.TargetProperty="(Shape.Fill).(SolidColorBrush.Color)">
+            <DiscreteColorKeyFrame KeyTime="0:0:0" Value="#4B5259"/><DiscreteColorKeyFrame KeyTime="0:0:1.2" Value="#22C47E"/>
+          </ColorAnimationUsingKeyFrames>
+          <ColorAnimationUsingKeyFrames Storyboard.TargetName="Dot2" Storyboard.TargetProperty="(Shape.Fill).(SolidColorBrush.Color)">
+            <DiscreteColorKeyFrame KeyTime="0:0:0" Value="#4B5259"/><DiscreteColorKeyFrame KeyTime="0:0:2.2" Value="#22C47E"/>
+          </ColorAnimationUsingKeyFrames>
+          <ColorAnimationUsingKeyFrames Storyboard.TargetName="Dot3" Storyboard.TargetProperty="(Shape.Fill).(SolidColorBrush.Color)">
+            <DiscreteColorKeyFrame KeyTime="0:0:0" Value="#4B5259"/><DiscreteColorKeyFrame KeyTime="0:0:3.2" Value="#22C47E"/>
+          </ColorAnimationUsingKeyFrames>
+          <ColorAnimationUsingKeyFrames Storyboard.TargetName="Dot4" Storyboard.TargetProperty="(Shape.Fill).(SolidColorBrush.Color)">
+            <DiscreteColorKeyFrame KeyTime="0:0:0" Value="#4B5259"/><DiscreteColorKeyFrame KeyTime="0:0:4.1" Value="#22C47E"/>
+          </ColorAnimationUsingKeyFrames>
+          <ColorAnimationUsingKeyFrames Storyboard.TargetName="Dot5" Storyboard.TargetProperty="(Shape.Fill).(SolidColorBrush.Color)">
+            <DiscreteColorKeyFrame KeyTime="0:0:0" Value="#4B5259"/><DiscreteColorKeyFrame KeyTime="0:0:5.0" Value="#22C47E"/>
+          </ColorAnimationUsingKeyFrames>
+
+          <!-- 5 s: done -->
+          <DoubleAnimation Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Opacity" BeginTime="0:0:5.0" To="0" Duration="0:0:0.3"/>
+          <DoubleAnimation Storyboard.TargetName="DonePanel" Storyboard.TargetProperty="Opacity" BeginTime="0:0:5.0" From="0" To="1" Duration="0:0:0.3"/>
+
+          <!-- 5.6 s: alert leaves the workstation and reaches the phone -->
+          <DoubleAnimation Storyboard.TargetName="Arrow1" Storyboard.TargetProperty="Opacity" BeginTime="0:0:5.6" From="0.25" To="1" Duration="0:0:0.3"/>
+          <DoubleAnimation Storyboard.TargetName="Arrow1Text" Storyboard.TargetProperty="Opacity" BeginTime="0:0:5.6" From="0.25" To="1" Duration="0:0:0.3"/>
+          <DoubleAnimation Storyboard.TargetName="PhoneCard" Storyboard.TargetProperty="Opacity" BeginTime="0:0:6.2" From="0" To="1" Duration="0:0:0.4"/>
+          <DoubleAnimation Storyboard.TargetName="PhoneCard" Storyboard.TargetProperty="(Canvas.Top)" BeginTime="0:0:6.2" From="100" To="120" Duration="0:0:0.4">
+            <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+          </DoubleAnimation>
+
+          <!-- 7 s: the locked phone mirrors it to the watch -->
+          <DoubleAnimation Storyboard.TargetName="Arrow2" Storyboard.TargetProperty="Opacity" BeginTime="0:0:7.0" From="0.25" To="1" Duration="0:0:0.3"/>
+          <DoubleAnimation Storyboard.TargetName="Arrow2Text" Storyboard.TargetProperty="Opacity" BeginTime="0:0:7.0" From="0.25" To="1" Duration="0:0:0.3"/>
+          <DoubleAnimation Storyboard.TargetName="WatchCard" Storyboard.TargetProperty="Opacity" BeginTime="0:0:7.6" From="0" To="1" Duration="0:0:0.4"/>
+          <DoubleAnimation Storyboard.TargetName="WatchCard" Storyboard.TargetProperty="(Canvas.Top)" BeginTime="0:0:7.6" From="128" To="112" Duration="0:0:0.4">
+            <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+          </DoubleAnimation>
+
+          <!-- 12 s: reset for the next loop -->
+          <DoubleAnimation Storyboard.TargetName="PhoneCard" Storyboard.TargetProperty="Opacity" BeginTime="0:0:12.0" To="0" Duration="0:0:0.4"/>
+          <DoubleAnimation Storyboard.TargetName="WatchCard" Storyboard.TargetProperty="Opacity" BeginTime="0:0:12.0" To="0" Duration="0:0:0.4"/>
+          <DoubleAnimation Storyboard.TargetName="DonePanel" Storyboard.TargetProperty="Opacity" BeginTime="0:0:12.0" To="0" Duration="0:0:0.4"/>
+          <DoubleAnimation Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Opacity" BeginTime="0:0:12.4" To="1" Duration="0:0:0.3"/>
+          <DoubleAnimation Storyboard.TargetName="Arrow1" Storyboard.TargetProperty="Opacity" BeginTime="0:0:12.0" To="0.25" Duration="0:0:0.4"/>
+          <DoubleAnimation Storyboard.TargetName="Arrow1Text" Storyboard.TargetProperty="Opacity" BeginTime="0:0:12.0" To="0.25" Duration="0:0:0.4"/>
+          <DoubleAnimation Storyboard.TargetName="Arrow2" Storyboard.TargetProperty="Opacity" BeginTime="0:0:12.0" To="0.25" Duration="0:0:0.4"/>
+          <DoubleAnimation Storyboard.TargetName="Arrow2Text" Storyboard.TargetProperty="Opacity" BeginTime="0:0:12.0" To="0.25" Duration="0:0:0.4"/>
+        </Storyboard>
+      </BeginStoryboard>
+    </EventTrigger>
+  </UserControl.Triggers>
+</UserControl>

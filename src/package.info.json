@@ -1,18 +1,18 @@
 {
   "packageId": "EncyPulse",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "targetFramework": "net10.0",
-  "sdkVersion": "3.0.8",
+  "sdkVersion": "3.0.9",
   "dependencies": [
     {
       "id": "EncySoftware.CAMAPI.SDK.Net",
-      "version": "3.0.8"
+      "version": "3.0.9"
     }
   ],
-  "description": "Describe what your extension does",
-  "author": "",
-  "category": "other",
-  "tags": "Utility, ency-extension",
+  "description": "Know the moment ENCY is done, wherever you are. A phone push, an Apple Watch tap or an email when the whole project, or just the operations you selected, finishes calculating or simulating. Only when you are away, with quiet hours, in ENCY's own look.",
+  "author": "a.lovygin@encycam.com",
+  "category": "automation",
+  "tags": "Utility, Global, Notifications, Push, Email, Apple Watch, ency-extension",
   "iconPath": "",
-  "requiresRestart": false
+  "requiresRestart": true
 }

@@ -1,47 +1,41 @@
-using EncyPulse;
+using System;
+using EncyPulse.Capture;
+using EncyPulse.Ui;
 
-// The namespace and class name must stay CAMAPI.ExtensionFactory — that is how ENCY finds
-// the entry point of the library.
+// The namespace and class name must stay CAMAPI.ExtensionFactory: that is how ENCY finds the entry point.
 namespace CAMAPI;
 
 using Extensions;
 using ResultStatus;
 
-/// <summary>
-/// Factory creating the extensions of this library.
-/// </summary>
 public class ExtensionFactory : IExtensionFactory
 {
-    /// <inheritdoc />
-    public void OnLibraryRegistered(IExtensionFactoryContext context, out TResultStatus ret)
-    {
-        ret = default;
-    }
+    public const string GlobalId = "Extension.Global.EncyPulse";
+    public const string SettingsId = "Extension.Utility.EncyPulse.Settings";
+    public const string PopupId = "Extension.OperationPopup.EncyPulse";
 
-    /// <inheritdoc />
-    public void OnLibraryUnRegistered(IExtensionFactoryContext context, out TResultStatus ret)
-    {
-        ret = default;
-    }
+    public void OnLibraryRegistered(IExtensionFactoryContext context, out TResultStatus ret) => ret = default;
 
-    /// <summary>
-    /// Create an extension instance by its identifier. The identifier must match the "id"
-    /// declared in EncyPulse.settings.json.
-    /// </summary>
+    public void OnLibraryUnRegistered(IExtensionFactoryContext context, out TResultStatus ret) => ret = default;
+
     public IExtension? Create(string extensionIdent, out TResultStatus ret)
     {
+        ret = default;
         try
         {
-            ret = default;
-            if (extensionIdent == "Extension.Utility.EncyPulse")
-                return new UtilityExtension();
-            throw new Exception("Unknown extension identifier: " + extensionIdent);
+            return extensionIdent switch
+            {
+                GlobalId => new GlobalExtension(),
+                SettingsId => new SettingsUtility(),
+                PopupId => new NotifyPopup(),
+                _ => throw new Exception("Unknown extension identifier: " + extensionIdent),
+            };
         }
         catch (Exception e)
         {
             ret.Code = TResultStatusCode.rsError;
             ret.Description = e.Message;
+            return null;
         }
-        return null;
     }
 }

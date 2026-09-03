@@ -1,13 +1,25 @@
 {
-    "name": "EncyPulse",
-    "description": "Describe what your extension does",
+    "name": "ENCY Pulse",
+    "description": "Phone, watch and email notifications when ENCY finishes calculating or simulating",
     "module_path": "${extensionJsonFolder}/EncyPulse.dll",
     "extensions": [
         {
+            "global": {
+                "id": "Extension.Global.EncyPulse",
+                "name": "Watches calculations and simulations in the background and sends the notifications"
+            }
+        },
+        {
             "utility": {
-                "name": "EncyPulse",
-                "caption": "EncyPulse",
-                "id": "Extension.Utility.EncyPulse"
+                "id": "Extension.Utility.EncyPulse.Settings",
+                "name": "Choose what to be notified about and where the messages go",
+                "caption": "ENCY Pulse"
+            }
+        },
+        {
+            "operation_popup": {
+                "id": "Extension.OperationPopup.EncyPulse",
+                "name": "Notify me when this operation is calculated or simulated"
             }
         }
     ]

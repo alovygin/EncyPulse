@@ -1,0 +1,929 @@
+<Window x:Class="EncyPulse.Ui.PulseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:EncyPulse.Ui"
+        Title="ENCY Pulse" Width="920" Height="680" MinWidth="800" MinHeight="580"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource BgBrush}" Foreground="{DynamicResource InkBrush}"
+        FontFamily="Segoe UI Variable Text, Segoe UI, Arial" FontSize="14"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display" SnapsToDevicePixels="True">
+
+  <Window.Resources>
+    <!-- Palette defaults (dark, ENCY "Outer Space"). ApplyTheme() overwrites every brush from ENCY's live palette. -->
+    <SolidColorBrush x:Key="BgBrush" Color="#1B1E21"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#2A2E32"/>
+    <SolidColorBrush x:Key="Surface2Brush" Color="#393E43"/>
+    <SolidColorBrush x:Key="InkBrush" Color="#E9EBED"/>
+    <SolidColorBrush x:Key="Ink2Brush" Color="#9AA1A7"/>
+    <SolidColorBrush x:Key="LineBrush" Color="#41474D"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#22C47E"/>
+    <SolidColorBrush x:Key="AccentInkBrush" Color="#0B1F17"/>
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#1F3A31"/>
+    <SolidColorBrush x:Key="HeaderBgBrush" Color="#141618"/>
+    <SolidColorBrush x:Key="HeaderInkBrush" Color="#E9EBED"/>
+    <SolidColorBrush x:Key="WarnBrush" Color="#E0A24A"/>
+    <SolidColorBrush x:Key="WarnSoftBrush" Color="#3A2F1C"/>
+    <SolidColorBrush x:Key="OkBrush" Color="#5FC08A"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#F28B82"/>
+
+    <BooleanToVisibilityConverter x:Key="Vis"/>
+    <ui:InverseBoolToVisibilityConverter x:Key="NotVis"/>
+    <ui:InverseBoolConverter x:Key="Not"/>
+
+    <!-- Typography -->
+    <Style x:Key="H1" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="22"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource HeaderInkBrush}"/>
+    </Style>
+    <Style x:Key="H2" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="16"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+    </Style>
+    <Style x:Key="Body" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style x:Key="Hint" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Ink2Brush}"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style x:Key="Preview" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="FontStyle" Value="Italic"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style x:Key="Info" TargetType="TextBlock">
+      <Setter Property="Text" Value="&#x24D8;"/>
+      <Setter Property="Foreground" Value="{DynamicResource Ink2Brush}"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Margin" Value="6,0,0,0"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Cursor" Value="Help"/>
+      <Setter Property="ToolTipService.InitialShowDelay" Value="200"/>
+      <Setter Property="ToolTipService.ShowDuration" Value="20000"/>
+    </Style>
+
+    <!-- Floating panel, like ENCY's tree and tool panels -->
+    <Style x:Key="Card" TargetType="Border">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Padding" Value="18"/>
+    </Style>
+
+    <Style x:Key="MiniSegment" TargetType="RadioButton">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="{DynamicResource Ink2Brush}"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border x:Name="Bg" CornerRadius="6" Background="Transparent" Padding="10,4">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Surface2Brush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Segmented tab strip, like Model | Machining | Simulation -->
+    <Style x:Key="SegmentItem" TargetType="RadioButton">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="{DynamicResource Ink2Brush}"/>
+      <Setter Property="MinWidth" Value="136"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border x:Name="Bg" CornerRadius="8" Background="Transparent" Padding="18,8">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Surface2Brush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+              </Trigger>
+              <MultiTrigger>
+                <MultiTrigger.Conditions>
+                  <Condition Property="IsMouseOver" Value="True"/>
+                  <Condition Property="IsChecked" Value="False"/>
+                </MultiTrigger.Conditions>
+                <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+              </MultiTrigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Switch: accent track when on, like ENCY's green state indicators -->
+    <Style x:Key="Switch" TargetType="ToggleButton">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Grid Width="42" Height="24" Background="Transparent">
+              <Border x:Name="Track" CornerRadius="12" Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"/>
+              <Ellipse x:Name="Thumb" Width="16" Height="16" Fill="{DynamicResource Ink2Brush}" HorizontalAlignment="Left" Margin="4,0,0,0"/>
+              <Border x:Name="Focus" CornerRadius="12" BorderThickness="2" BorderBrush="{DynamicResource AccentBrush}" Visibility="Collapsed" Margin="-3"/>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource AccentInkBrush}"/>
+                <Setter TargetName="Thumb" Property="Margin" Value="22,0,0,0"/>
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Focus" Property="Visibility" Value="Visible"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Checkbox: rounded box, accent fill -->
+    <Style TargetType="CheckBox">
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="CheckBox">
+            <StackPanel Orientation="Horizontal" Background="Transparent">
+              <Border x:Name="Box" Width="18" Height="18" CornerRadius="4" BorderThickness="1.5" BorderBrush="{DynamicResource Ink2Brush}" Background="Transparent" VerticalAlignment="Center">
+                <Path x:Name="Check" Data="M4,9.5 L7.5,13 L14,5" Stroke="{DynamicResource AccentInkBrush}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed"/>
+              </Border>
+              <ContentPresenter x:Name="Content" Margin="8,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+            </StackPanel>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+              </Trigger>
+              <Trigger Property="HasContent" Value="False">
+                <Setter TargetName="Content" Property="Margin" Value="0"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Buttons: flat like ENCY's toolbar buttons; Primary carries the accent -->
+    <Style x:Key="Ghost" TargetType="Button">
+      <Setter Property="Background" Value="{DynamicResource Surface2Brush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+      <Setter Property="Padding" Value="18,8"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.8"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter TargetName="B" Property="Opacity" Value="0.45"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource Ghost}">
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource AccentInkBrush}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.9"/></Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.8"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter TargetName="B" Property="Opacity" Value="0.45"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Text fields -->
+    <Style x:Key="Field" TargetType="TextBox">
+      <Setter Property="Background" Value="{DynamicResource BgBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="8,6"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="CaretBrush" Value="{DynamicResource InkBrush}"/>
+      <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TextBox">
+            <Border x:Name="B" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <!-- Small numeric/time fields that sit inside a sentence -->
+    <Style x:Key="InlineField" TargetType="TextBox" BasedOn="{StaticResource Field}">
+      <Setter Property="Height" Value="30"/>
+      <Setter Property="Padding" Value="4,0"/>
+      <Setter Property="TextAlignment" Value="Center"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="8,0"/>
+    </Style>
+    <Style x:Key="PasswordField" TargetType="PasswordBox">
+      <Setter Property="Background" Value="{DynamicResource BgBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="8,6"/>
+      <Setter Property="CaretBrush" Value="{DynamicResource InkBrush}"/>
+      <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="PasswordBox">
+            <Border x:Name="B" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Thin scrollbar -->
+    <Style TargetType="ScrollBar">
+      <Setter Property="Width" Value="8"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollBar">
+            <Grid Background="Transparent" Width="8">
+              <Track x:Name="PART_Track" IsDirectionReversed="True">
+                <Track.DecreaseRepeatButton>
+                  <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False"/>
+                </Track.DecreaseRepeatButton>
+                <Track.IncreaseRepeatButton>
+                  <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="False"/>
+                </Track.IncreaseRepeatButton>
+                <Track.Thumb>
+                  <Thumb>
+                    <Thumb.Template>
+                      <ControlTemplate TargetType="Thumb">
+                        <Border Background="{DynamicResource LineBrush}" CornerRadius="4" Margin="1,0"/>
+                      </ControlTemplate>
+                    </Thumb.Template>
+                  </Thumb>
+                </Track.Thumb>
+              </Track>
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Section toggle (More options) -->
+    <Style x:Key="SectionToggle" TargetType="ToggleButton">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="{DynamicResource Ink2Brush}"/>
+      <Setter Property="HorizontalAlignment" Value="Left"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <StackPanel Orientation="Horizontal" Background="Transparent" Margin="4,0">
+              <Path x:Name="Chevron" Data="M2,4 L7,9 L12,4" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="14" Height="14" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                <Path.RenderTransform><RotateTransform Angle="0"/></Path.RenderTransform>
+              </Path>
+              <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center" TextBlock.FontWeight="SemiBold"/>
+            </StackPanel>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Chevron" Property="RenderTransform"><Setter.Value><RotateTransform Angle="180"/></Setter.Value></Setter>
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="Hyperlink">
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+      <Setter Property="TextDecorations" Value="{x:Null}"/>
+    </Style>
+    <Style TargetType="ToolTip">
+      <Setter Property="Background" Value="{DynamicResource Surface2Brush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="10,8"/>
+      <Setter Property="MaxWidth" Value="320"/>
+      <Setter Property="HasDropShadow" Value="True"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToolTip">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}">
+              <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" TextWrapping="Wrap" FontSize="12.5"/>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <Grid Background="{DynamicResource BgBrush}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Header: ENCY's title-bar tone -->
+    <Border Grid.Row="0" Background="{DynamicResource HeaderBgBrush}" Padding="22,14">
+      <Grid>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource AccentBrush}" Margin="0,0,12,0">
+            <Path Data="M4,17 L9,17 L11,11 L14,23 L17,14 L19,17 L24,17" Stroke="{DynamicResource AccentInkBrush}" StrokeThickness="2.2" StrokeLineJoin="Round" StrokeEndLineCap="Round" StrokeStartLineCap="Round" Stretch="Uniform" Margin="8"/>
+          </Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Style="{StaticResource H1}"><Run Text="ENCY "/><Run Text="Pulse" Foreground="{DynamicResource AccentBrush}"/></TextBlock>
+            <TextBlock Style="{StaticResource Hint}" Text="Know the moment ENCY is done, wherever you are."/>
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+          <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="3" Margin="0,0,12,0" ToolTip="Appearance: Auto follows ENCY's theme; Light and Dark force one">
+            <StackPanel Orientation="Horizontal">
+              <RadioButton x:Name="ThemeAuto" Style="{StaticResource MiniSegment}" Content="Auto" Tag="auto" Checked="Theme_Checked"/>
+              <RadioButton x:Name="ThemeLight" Style="{StaticResource MiniSegment}" Content="Light" Tag="light" Checked="Theme_Checked"/>
+              <RadioButton x:Name="ThemeDark" Style="{StaticResource MiniSegment}" Content="Dark" Tag="dark" Checked="Theme_Checked"/>
+            </StackPanel>
+          </Border>
+        <Border VerticalAlignment="Center" CornerRadius="14" Padding="12,5" BorderThickness="1">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+              <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding StatusIsWarning}" Value="True">
+                  <Setter Property="Background" Value="{DynamicResource WarnSoftBrush}"/>
+                  <Setter Property="BorderBrush" Value="{DynamicResource WarnBrush}"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <TextBlock Text="{Binding StatusText}" FontSize="12.5" FontWeight="SemiBold">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding StatusIsWarning}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource WarnBrush}"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </Border>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Segmented tabs -->
+    <Border Grid.Row="1" Margin="22,16,22,0" HorizontalAlignment="Left" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="10" Padding="4">
+      <StackPanel Orientation="Horizontal">
+        <RadioButton x:Name="NavOverview" Style="{StaticResource SegmentItem}" Checked="Nav_Checked" Tag="Overview" Content="Overview" MinWidth="110"/>
+        <RadioButton x:Name="NavNotifications" Style="{StaticResource SegmentItem}" IsChecked="True" Checked="Nav_Checked" Tag="Notifications" Content="Notifications"/>
+        <RadioButton x:Name="NavDelivery" Style="{StaticResource SegmentItem}" Checked="Nav_Checked" Tag="Delivery" Content="Delivery"/>
+        <RadioButton x:Name="NavHelp" Style="{StaticResource SegmentItem}" Checked="Nav_Checked" Tag="Help" Content="Help"/>
+      </StackPanel>
+    </Border>
+
+    <!-- Body -->
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="22,16,14,16">
+      <Grid Margin="0,0,8,0">
+
+        <!-- ================= OVERVIEW (first launch) ================= -->
+        <StackPanel x:Name="PageOverview" Visibility="Collapsed">
+          <TextBlock Style="{StaticResource H2}" Text="Welcome to ENCY Pulse"/>
+          <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,14" Text="Start a long calculation, walk away, and know the moment it is done."/>
+
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+              <ui:DemoPlayer/>
+              <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0" Text="ENCY works through the operations. The moment the last one is done, the alert reaches the phone; with the iPhone locked, the same alert appears on the Apple Watch."/>
+            </StackPanel>
+          </Border>
+
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource Card}">
+              <StackPanel>
+                <TextBlock Style="{StaticResource H2}" Text="1 · Choose a channel"/>
+                <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" Text="Phone push through the free ntfy app is the quickest. Email and Pushover are there too."/>
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource Card}">
+              <StackPanel>
+                <TextBlock Style="{StaticResource H2}" Text="2 · Pick what matters"/>
+                <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" Text="The whole project, or only the operations you tick. Simulations too."/>
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="4" Style="{StaticResource Card}">
+              <StackPanel>
+                <TextBlock Style="{StaticResource H2}" Text="3 · Send a test"/>
+                <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" Text="One button confirms the phone is connected. Then forget about it."/>
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+            <Button Style="{StaticResource Primary}" Content="Get started" Click="GetStarted_Click" MinWidth="140"/>
+            <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="14,0,0,0" Text="Takes about two minutes. You can come back to this page from the Overview tab."/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- ================= NOTIFICATIONS ================= -->
+        <StackPanel x:Name="PageNotifications">
+          <TextBlock Style="{StaticResource H2}" Text="What should ENCY Pulse tell you about?"/>
+          <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,14">
+            <Run Text="Two independent scenarios. Use either or both."/>
+            <Run Text="  Project: "/><Run Text="{Binding ProjectName, Mode=OneWay}" FontWeight="SemiBold"/>
+          </TextBlock>
+
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="16"/>
+              <ColumnDefinition Width="1.35*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Entire project -->
+            <Border Grid.Column="0" Style="{StaticResource Card}" VerticalAlignment="Stretch">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#x25A3;" Foreground="{DynamicResource AccentBrush}" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                  <TextBlock Style="{StaticResource H2}" Text="Entire project"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,16" Text="One message when the whole project is done. Nothing arrives for individual operations."/>
+
+                <Grid Margin="0,0,0,14">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Style="{StaticResource Body}" Text="Calculation completed"/>
+                      <TextBlock Style="{StaticResource Info}" ToolTip="Sent once, when every enabled operation in the project has a calculated toolpath. If some operations fail, their names are included in the message."/>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Preview}" Text="“Project calculation completed.”"/>
+                  </StackPanel>
+                  <ToggleButton Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding ProjectCalc}" ToolTip="Notify when the whole project has finished calculating"/>
+                </Grid>
+
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Style="{StaticResource Body}" Text="Simulation completed"/>
+                      <TextBlock Style="{StaticResource Info}" ToolTip="Sent once, when a simulation that covered all operations of the project has finished. ENCY's automatic stock updates after loading or calculating are not reported."/>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Preview}" Text="“Project simulation completed.”"/>
+                  </StackPanel>
+                  <ToggleButton Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding ProjectSim}" ToolTip="Notify when a simulation of the whole project has finished"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Selected operations -->
+            <Border Grid.Column="2" Style="{StaticResource Card}">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#x2611;" Foreground="{DynamicResource AccentBrush}" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                  <TextBlock Style="{StaticResource H2}" Text="Selected operations"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,12" Text="Tick the operations you care about. Each one sends its own message, with its name."/>
+
+                <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="14" Visibility="{Binding HasProject, Converter={StaticResource NotVis}}">
+                  <TextBlock Style="{StaticResource Hint}" Text="Open a project in ENCY to pick its operations here. You can also right-click any operation in ENCY's tree and choose ENCY Pulse."/>
+                </Border>
+
+                <StackPanel Visibility="{Binding HasProject, Converter={StaticResource Vis}}">
+                  <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="104"/>
+                      <ColumnDefinition Width="104"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource Hint}" Text="OPERATION" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <CheckBox Grid.Column="1" IsChecked="{Binding AllCalc}" HorizontalAlignment="Center" ToolTip="Select or clear all operations for calculation messages">
+                      <TextBlock Style="{StaticResource Hint}" Text="Calculation" FontWeight="SemiBold"/>
+                    </CheckBox>
+                    <CheckBox Grid.Column="2" IsChecked="{Binding AllSim}" HorizontalAlignment="Center" ToolTip="Select or clear all operations for simulation messages">
+                      <TextBlock Style="{StaticResource Hint}" Text="Simulation" FontWeight="SemiBold"/>
+                    </CheckBox>
+                  </Grid>
+                  <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0"/>
+                  <ScrollViewer MaxHeight="230" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Operations}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Grid Margin="{Binding Indent}" Height="30">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="*"/>
+                              <ColumnDefinition Width="104"/>
+                              <ColumnDefinition Width="104"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding FullName}">
+                              <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                  <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+                                  <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsGroup}" Value="True">
+                                      <Setter Property="Foreground" Value="{DynamicResource Ink2Brush}"/>
+                                      <Setter Property="FontWeight" Value="SemiBold"/>
+                                      <Setter Property="FontSize" Value="12.5"/>
+                                    </DataTrigger>
+                                  </Style.Triggers>
+                                </Style>
+                              </TextBlock.Style>
+                            </TextBlock>
+                            <CheckBox Grid.Column="1" IsChecked="{Binding Calc}" HorizontalAlignment="Center" Visibility="{Binding IsGroup, Converter={StaticResource NotVis}}" ToolTip="Operation '…' calculation completed."/>
+                            <CheckBox Grid.Column="2" IsChecked="{Binding Sim}" HorizontalAlignment="Center" Visibility="{Binding IsGroup, Converter={StaticResource NotVis}}" ToolTip="Simulation completed for '…'."/>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+                  <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,10"/>
+                  <TextBlock Style="{StaticResource Preview}" Text="{Binding PreviewCalc}"/>
+                  <TextBlock Style="{StaticResource Preview}" Text="{Binding PreviewSim}" Margin="0,2,0,0"/>
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource Hint}" Margin="0,12,0,0" Text="Tip: the same two switches are in the right-click menu of every operation in ENCY."/>
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <!-- More options -->
+          <ToggleButton x:Name="MoreOptions" Style="{StaticResource SectionToggle}" Margin="0,16,0,0" Content="More options"/>
+          <Border Style="{StaticResource Card}" Margin="0,10,0,0" Visibility="{Binding IsChecked, ElementName=MoreOptions, Converter={StaticResource Vis}}">
+            <StackPanel>
+              <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Style="{StaticResource Body}" Text="Report failed operations"/>
+                  <TextBlock Style="{StaticResource Hint}" Text="“Calculation stopped with errors.” when an operation ends without a toolpath."/>
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding NotifyFailures}"/>
+              </Grid>
+              <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Style="{StaticResource Body}" Text="Only when I'm away from the computer"/>
+                  <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Style="{StaticResource Hint}" Text="Skip messages if the keyboard or mouse was used in the last" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal"><TextBox Style="{StaticResource InlineField}" Width="60" MaxLength="3" Text="{Binding AwayMinutes}" IsEnabled="{Binding OnlyWhenAway}" ToolTip="Minutes of inactivity before a message is sent"/><TextBlock Style="{StaticResource Hint}" Text="minutes." VerticalAlignment="Center"/></StackPanel>
+                    <TextBlock Style="{StaticResource Hint}" Text=" You can see the progress bar yourself." VerticalAlignment="Center"/>
+                  </WrapPanel>
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding OnlyWhenAway}" ToolTip="Recommended: no buzzing while you are sitting at the workstation"/>
+              </Grid>
+              <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Style="{StaticResource Body}" Text="Quiet hours"/>
+                  <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Style="{StaticResource Hint}" Text="Hold phone pushes from" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal"><TextBox Style="{StaticResource InlineField}" Width="76" MaxLength="5" Text="{Binding QuietFrom}" IsEnabled="{Binding QuietEnabled}" ToolTip="Start, 24-hour clock, e.g. 22:00"/><TextBlock Style="{StaticResource Hint}" Text="to" VerticalAlignment="Center"/><TextBox Style="{StaticResource InlineField}" Width="76" MaxLength="5" Text="{Binding QuietTo}" IsEnabled="{Binding QuietEnabled}" ToolTip="End, 24-hour clock, e.g. 07:00"/></StackPanel>
+                    <TextBlock Style="{StaticResource Hint}" Text="and deliver them afterwards. Email is not held." VerticalAlignment="Center"/>
+                  </WrapPanel>
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding QuietEnabled}"/>
+              </Grid>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Style="{StaticResource Body}" Text="Ignore short runs"/>
+                  <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Style="{StaticResource Hint}" Text="No project message when the whole run took less than" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal"><TextBox Style="{StaticResource InlineField}" Width="68" MaxLength="4" Text="{Binding IgnoreShortSec}" IsEnabled="{Binding IgnoreShort}"/><TextBlock Style="{StaticResource Hint}" Text="seconds." VerticalAlignment="Center"/></StackPanel>
+                    <TextBlock Style="{StaticResource Hint}" Text=" Selected operations are always reported." VerticalAlignment="Center"/>
+                  </WrapPanel>
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding IgnoreShort}"/>
+              </Grid>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- ================= DELIVERY ================= -->
+        <StackPanel x:Name="PageDelivery" Visibility="Collapsed">
+          <TextBlock Style="{StaticResource H2}" Text="Where should messages go?"/>
+          <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,14" Text="Switch on one or more channels. Send a test to see it arrive."/>
+
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource H2}" Text="Phone push (ntfy)"/>
+                    <Border Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1" CornerRadius="10" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                      <TextBlock Text="Recommended · free" Foreground="{DynamicResource AccentBrush}" FontSize="11" FontWeight="SemiBold"/>
+                    </Border>
+                  </StackPanel>
+                  <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0" Text="iPhone and Android. Apple Watch shows the alert automatically when your iPhone is locked."/>
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding NtfyEnabled}"/>
+              </Grid>
+              <StackPanel Visibility="{Binding NtfyEnabled, Converter={StaticResource Vis}}" Margin="0,14,0,0">
+                <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="14" Margin="0,0,0,14">
+                  <StackPanel>
+                    <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" Text="Set up in three steps"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0">
+                      <Run FontWeight="SemiBold" Text="1. Install the free ntfy app on your phone"/>
+                      <LineBreak/><Run Text="     iPhone: App Store, search “ntfy” (by Philipp Heckel), or open "/><Hyperlink NavigateUri="https://apps.apple.com/app/ntfy/id1625396347" RequestNavigate="Link_RequestNavigate">apps.apple.com/app/ntfy</Hyperlink>
+                      <LineBreak/><Run Text="     Android: Google Play, search “ntfy”, or open "/><Hyperlink NavigateUri="https://play.google.com/store/apps/details?id=io.heckel.ntfy" RequestNavigate="Link_RequestNavigate">play.google.com (io.heckel.ntfy)</Hyperlink>
+                      <LineBreak/><Run Text="     Allow notifications when the app asks."/>
+                      <LineBreak/><Run FontWeight="SemiBold" Text="2. Subscribe to your personal code"/>
+                      <LineBreak/><Run Text="     In the app tap “+” (Subscribe to topic), type the code shown below exactly as written, keep the default server ntfy.sh, and confirm."/>
+                      <LineBreak/><Run FontWeight="SemiBold" Text="3. Press Send test message"/>
+                      <LineBreak/><Run Text="     The phone buzzes within a few seconds. Lock the phone to see the same alert on an Apple Watch."/>
+                    </TextBlock>
+                  </StackPanel>
+                </Border>
+                <Grid Margin="0,0,0,4">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource Body}" Text="Your personal code"/>
+                    <TextBlock Style="{StaticResource Hint}" Text="(the “topic” in ntfy)"/>
+                  </StackPanel>
+                  <TextBox Grid.Column="1" Style="{StaticResource Field}" FontFamily="Consolas, Cascadia Mono, Courier New" FontSize="16" Text="{Binding NtfyTopic, UpdateSourceTrigger=PropertyChanged}" ToolTip="Letters and digits only. Create a new one if you think somebody else knows it."/>
+                  <Button Grid.Column="2" Style="{StaticResource Ghost}" Content="Copy" Margin="8,0,0,0" Click="CopyTopic_Click" ToolTip="Copy the code to the clipboard"/>
+                  <Button Grid.Column="3" Style="{StaticResource Ghost}" Content="New code" Margin="8,0,0,0" Click="GenerateTopic_Click" ToolTip="Create a new random code. Subscribe to it in the app afterwards."/>
+                </Grid>
+                <TextBlock Style="{StaticResource Hint}" Margin="150,0,0,12" Text="{Binding TopicHint}"/>
+                <Grid Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource Body}" Text="Server"/>
+                    <TextBlock Style="{StaticResource Info}" ToolTip="Leave https://ntfy.sh unless your company runs its own ntfy server. iPhone pushes from a self-hosted server need its upstream-base-url set to https://ntfy.sh."/>
+                  </StackPanel>
+                  <TextBox Grid.Column="1" Style="{StaticResource Field}" Text="{Binding NtfyServer}"/>
+                </Grid>
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource Body}" Text="Access token"/>
+                    <TextBlock Style="{StaticResource Info}" ToolTip="Optional. Only for protected topics or a paid ntfy account. Stored encrypted for your Windows account."/>
+                  </StackPanel>
+                  <PasswordBox Grid.Column="1" x:Name="NtfyTokenBox" Style="{StaticResource PasswordField}" PasswordChanged="Secret_Changed" Tag="NtfyToken"/>
+                </Grid>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Style="{StaticResource H2}" Text="Phone and Apple Watch (Pushover)"/>
+                  <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0" Text="Native watch app with message history. One-time purchase after a 30-day trial."/>
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding PushoverEnabled}"/>
+              </Grid>
+              <StackPanel Visibility="{Binding PushoverEnabled, Converter={StaticResource Vis}}" Margin="0,14,0,0">
+                <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                  <TextBlock Style="{StaticResource Hint}">
+                    <Run FontWeight="SemiBold" Text="1. Install Pushover"/><Run Text=" from the "/><Hyperlink NavigateUri="https://apps.apple.com/app/pushover-notifications/id506088175" RequestNavigate="Link_RequestNavigate">App Store</Hyperlink><Run Text=" or "/><Hyperlink NavigateUri="https://play.google.com/store/apps/details?id=net.superblock.pushover" RequestNavigate="Link_RequestNavigate">Google Play</Hyperlink><Run Text=" and create an account in the app. The Apple Watch app comes with it."/>
+                    <LineBreak/><Run FontWeight="SemiBold" Text="2. Copy your User Key"/><Run Text=" from "/><Hyperlink NavigateUri="https://pushover.net/" RequestNavigate="Link_RequestNavigate">pushover.net</Hyperlink><Run Text=" (shown on the front page after you sign in) into the first field below."/>
+                    <LineBreak/><Run FontWeight="SemiBold" Text="3. Create an application"/><Run Text=" at "/><Hyperlink NavigateUri="https://pushover.net/apps/build" RequestNavigate="Link_RequestNavigate">pushover.net/apps/build</Hyperlink><Run Text=", name it “ENCY Pulse”, and copy its API Token into the second field."/>
+                    <LineBreak/><Run FontWeight="SemiBold" Text="4. Press Send test message."/>
+                  </TextBlock>
+                </Border>
+                <Grid Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Body}" Text="User key" VerticalAlignment="Center"/>
+                  <PasswordBox Grid.Column="1" x:Name="PushoverUserBox" Style="{StaticResource PasswordField}" PasswordChanged="Secret_Changed" Tag="PushoverUser"/>
+                </Grid>
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Body}" Text="Application token" VerticalAlignment="Center"/>
+                  <PasswordBox Grid.Column="1" x:Name="PushoverTokenBox" Style="{StaticResource PasswordField}" PasswordChanged="Secret_Changed" Tag="PushoverToken"/>
+                </Grid>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Style="{StaticResource H2}" Text="Email"/>
+                  <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0" Text="Sent through your mail server (SMTP). Ask IT for the server name if you do not know it."/>
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding EmailEnabled}"/>
+              </Grid>
+              <StackPanel Visibility="{Binding EmailEnabled, Converter={StaticResource Vis}}" Margin="0,14,0,0">
+                <Grid Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Body}" Text="Send to" VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="1" Style="{StaticResource Field}" Text="{Binding EmailTo}"/>
+                </Grid>
+                <Grid Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="70"/></Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Body}" Text="SMTP server" VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="1" Style="{StaticResource Field}" Text="{Binding SmtpHost}"/>
+                  <TextBlock Grid.Column="2" Style="{StaticResource Body}" Text="Port" Margin="12,0,8,0" VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="3" Style="{StaticResource Field}" Text="{Binding SmtpPort}" ToolTip="587 with TLS is the usual choice; 465 for implicit SSL; 25 for plain relay"/>
+                </Grid>
+                <Grid Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Body}" Text="Login" VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="1" Style="{StaticResource Field}" Text="{Binding SmtpUser}" ToolTip="Leave empty if your server accepts mail without a login"/>
+                </Grid>
+                <Grid Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource Body}" Text="Password"/>
+                    <TextBlock Style="{StaticResource Info}" ToolTip="Stored encrypted for your Windows account. For Gmail or Outlook.com use an app password."/>
+                  </StackPanel>
+                  <PasswordBox Grid.Column="1" x:Name="SmtpPasswordBox" Style="{StaticResource PasswordField}" PasswordChanged="Secret_Changed" Tag="SmtpPassword"/>
+                </Grid>
+                <Grid Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Body}" Text="From address" VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="1" Style="{StaticResource Field}" Text="{Binding EmailFrom}" ToolTip="Optional. Defaults to the Send to address."/>
+                </Grid>
+                <CheckBox IsChecked="{Binding SmtpSsl}" Content="Use SSL/TLS (recommended)"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Style="{StaticResource H2}" Text="Company relay"/>
+                  <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0" Text="For teams running an ENCY Pulse relay server. Your administrator gives you the address and key."/>
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding RelayEnabled}"/>
+              </Grid>
+              <StackPanel Visibility="{Binding RelayEnabled, Converter={StaticResource Vis}}" Margin="0,14,0,0">
+                <Grid Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Body}" Text="Relay address" VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="1" Style="{StaticResource Field}" Text="{Binding RelayUrl}"/>
+                </Grid>
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Body}" Text="API key" VerticalAlignment="Center"/>
+                  <PasswordBox Grid.Column="1" x:Name="RelayKeyBox" Style="{StaticResource PasswordField}" PasswordChanged="Secret_Changed" Tag="RelayKey"/>
+                </Grid>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}">
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Button Style="{StaticResource Primary}" Content="Send test message" Click="SendTest_Click" IsEnabled="{Binding TestBusy, Converter={StaticResource Not}}" ToolTip="Saves the delivery settings and sends a message to every enabled channel"/>
+              <TextBlock Grid.Column="1" Style="{StaticResource Body}" Text="{Binding TestStatus}" Margin="16,0,0,0" VerticalAlignment="Center"/>
+            </Grid>
+          </Border>
+        </StackPanel>
+
+        <!-- ================= HELP ================= -->
+        <StackPanel x:Name="PageHelp" Visibility="Collapsed">
+          <TextBlock Style="{StaticResource H2}" Text="Help"/>
+          <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,14" Text="Everything ENCY Pulse does, in one page."/>
+
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+              <TextBlock Style="{StaticResource H2}" Text="See it in action"/>
+              <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,10" Text="How an alert arrives on the phone and on the watch."/>
+              <ui:DemoPlayer/>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+              <TextBlock Style="{StaticResource H2}" Text="How it works"/>
+              <TextBlock Style="{StaticResource Body}" Margin="0,8,0,0">
+                <Run Text="ENCY Pulse runs quietly inside ENCY. It watches operations being calculated and simulated, waits until a run has settled, and sends one clear message per event to the channels you enabled. Nothing is sent while you are working at the computer if “Only when I'm away” is on."/>
+              </TextBlock>
+              <TextBlock Style="{StaticResource Body}" Margin="0,10,0,0">
+                <Run FontWeight="SemiBold" Text="Entire project"/><Run Text=" is about the whole job: one message when everything is calculated, one when a full simulation is done."/>
+                <LineBreak/><Run FontWeight="SemiBold" Text="Selected operations"/><Run Text=" is about specific steps: each ticked operation reports its own completion, by name, the moment it finishes."/>
+              </TextBlock>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+              <TextBlock Style="{StaticResource H2}" Text="What you will receive"/>
+              <Grid Margin="0,8,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                <TextBlock Style="{StaticResource Hint}" Text="Project, calculation" Margin="0,3"/>
+                <TextBlock Grid.Column="1" Style="{StaticResource Body}" Text="“Project calculation completed.” · Blade.stcp · 6 operations · 52 m 07 s" Margin="0,3"/>
+                <TextBlock Grid.Row="1" Style="{StaticResource Hint}" Text="Project, simulation" Margin="0,3"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Body}" Text="“Project simulation completed.” · Blade.stcp · 6 operations · 11 m 03 s" Margin="0,3"/>
+                <TextBlock Grid.Row="2" Style="{StaticResource Hint}" Text="Operation, calculation" Margin="0,3"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Body}" Text="“Operation 'Roughing 01' calculation completed.” · Blade.stcp · 4 m 12 s" Margin="0,3"/>
+                <TextBlock Grid.Row="3" Style="{StaticResource Hint}" Text="Operation, simulation" Margin="0,3"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Body}" Text="“Simulation completed for 'Finishing 02'.” · Blade.stcp" Margin="0,3"/>
+                <TextBlock Grid.Row="4" Style="{StaticResource Hint}" Text="Errors" Margin="0,3"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Body}" Text="“Calculation stopped with errors.” · 2 of 6 operations have no toolpath" Margin="0,3"/>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+              <TextBlock Style="{StaticResource H2}" Text="Nothing arrives?"/>
+              <TextBlock Style="{StaticResource Body}" Margin="0,8,0,0">
+                <Run Text="1. On the Delivery page, press Send test message. If the test arrives, delivery is fine."/>
+                <LineBreak/><Run Text="2. Check “Only when I'm away”: while you type or move the mouse, messages are skipped on purpose."/>
+                <LineBreak/><Run Text="3. Calculating a project that is already calculated does nothing in ENCY, so there is nothing to report. Reset toolpaths first."/>
+                <LineBreak/><Run Text="4. On the phone, allow notifications for the ntfy or Pushover app, and check Focus modes. Apple Watch shows alerts only while the iPhone is locked."/>
+                <LineBreak/><Run Text="5. Still nothing? The log below records every detection and every send attempt."/>
+              </TextBlock>
+              <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                <Button Style="{StaticResource Ghost}" Content="Open log" Click="OpenLog_Click"/>
+                <Button Style="{StaticResource Ghost}" Content="Open data folder" Click="OpenFolder_Click" Margin="8,0,0,0"/>
+                <CheckBox IsChecked="{Binding DebugLog}" Content="Detailed log" Margin="16,0,0,0" ToolTip="Writes every ENCY event and flag change. Useful when reporting a problem; switch off afterwards."/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <TextBlock Style="{StaticResource H2}" Text="About"/>
+              <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" Text="{Binding VersionText}"/>
+              <TextBlock Style="{StaticResource Hint}" Text="{Binding DataDir}"/>
+              <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" Text="Settings are stored for your Windows account only. Passwords and tokens are encrypted. Only the message text leaves this computer."/>
+              <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Margin="0,12,0,10"/>
+              <TextBlock Style="{StaticResource Body}">
+                <Run Text="Have an idea that would make ENCY Pulse more useful, or something that gets in your way? Write to the developer: "/>
+                <Hyperlink NavigateUri="mailto:a.lovygin@encycam.com?subject=ENCY%20Pulse" RequestNavigate="Link_RequestNavigate">a.lovygin@encycam.com</Hyperlink>
+                <Run Text=". Every suggestion is read."/>
+              </TextBlock>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
+    </ScrollViewer>
+
+    <!-- Footer -->
+    <Border Grid.Row="3" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="22,12">
+      <Grid>
+        <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Text="{Binding FooterText}"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button Style="{StaticResource Ghost}" Content="Cancel" Click="Cancel_Click" IsCancel="True"/>
+          <Button Style="{StaticResource Primary}" Content="Save" Click="Save_Click" Margin="10,0,0,0" IsDefault="True" MinWidth="104"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

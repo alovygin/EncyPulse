@@ -3,43 +3,48 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>EncyPulse</RootNamespace>
+    <AssemblyName>EncyPulse</AssemblyName>
+    <Version>0.3.0</Version>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <OutDir>bin\$(Configuration)\</OutDir>
+    <!-- SmtpClient is flagged as legacy; it is still the dependency-free way to send mail on Windows. -->
+    <NoWarn>$(NoWarn);SYSLIB0014</NoWarn>
   </PropertyGroup>
 
-  <!-- keep the Release output flat and clean: it is packed into the store package as-is -->
+  <!-- Release output is packed into the store package as-is: keep it flat. -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- ENCY 3. The version is pinned rather than floated, so a build is reproducible; newer 3.x
-         releases on the public feed are fine to move to. The framework follows the application:
-         ENCY 3 runs on .NET 10, and an extension is a library loaded into that process. The trade is
-         one-way — a net8 build loads in a net10 ENCY, a net10 build does not load in an older net8
-         one. -->
-    <PackageReference Include="EncySoftware.CAMAPI.Sdk.Net" Version="3.0.8" />
+    <!-- ENCY 3 runs on .NET 10; the extension is a library loaded into that process. -->
+    <PackageReference Include="EncySoftware.CAMAPI.Sdk.Net" Version="3.0.9" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="EncyPulse.settings.json" CopyToOutputDirectory="Always" />
     <None Update="package.info.json" CopyToOutputDirectory="Always" />
     <None Update="readme.md" CopyToOutputDirectory="Always" />
-    <!-- Pictures of the extension: the store turns them into the card's screenshots and takes the
-         first one as its cover. Two details matter. Only image extensions are copied, so the note in
-         that folder does not end up in the package (and cannot shadow readme.md). And Link flattens
-         them into the output root, because CI uploads only the top level of the build output. -->
     <None Include="screenshots\*.png;screenshots\*.jpg;screenshots\*.jpeg;screenshots\*.gif;screenshots\*.webp"
           CopyToOutputDirectory="Always" Link="%(Filename)%(Extension)" />
+    <!-- Real ENCY viewport used on the workstation screen of the demo illustration (embedded) -->
+    <Resource Include="media\part.png" />
+    <!-- Optional onboarding recording; see media\README.md. Shipped flat next to the DLL. -->
+    <None Include="media\welcome.mp4" CopyToOutputDirectory="Always" Link="welcome.mp4" Condition="Exists('media\welcome.mp4')" />
   </ItemGroup>
 
-  <!-- The SDK's transitive packages copy ~60 doc xmls into the output via their own
-       AfterTargets="Build" hooks, which run after any hook declared here. PackReady therefore
-       DEPENDS on Build: its body executes only after Build and all its hooks are done.
-       Build with `dotnet build src -c Release -t:PackReady` to get an output folder that is
-       clean to pack into the store package as-is. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="EncyPulse.Tests" />
+  </ItemGroup>
+
+  <!-- The SDK's transitive packages copy doc xmls into the output via their own AfterTargets="Build"
+       hooks. PackReady depends on Build so it runs after them and sweeps the junk out.
+       Build with: dotnet build src -c Release -t:PackReady -->
   <Target Name="PackReady" DependsOnTargets="Build">
     <ItemGroup>
       <_SdkJunk Include="$(OutDir)*.xml" Exclude="$(OutDir)$(AssemblyName).xml" />
