@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ency-extension-store": {
+      "command": "ency-extension-mcp",
+      "args": []
+    }
+  }
+}

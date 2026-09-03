@@ -1,0 +1,160 @@
+---
+description: Transform the calculated CLD toolpath data before it reaches the next pipeline stage
+alwaysApply: false
+---
+
+<!-- Generated from guides/cldata-converter.md in EncySoftware/ency-extension-mcp.
+     Edit it there and run tools/sync-rules.ps1 - changes made here are overwritten. -->
+
+# CLData converter — `IExtensionGeomCLDataConverter`
+
+## When to use
+
+The toolpath is already calculated and you want to **change it on the way out**: lift every working
+move by an offset, filter moves, apply a transformation, inject comments or custom CLData records,
+collect statistics. You return a receiver that wraps the one ENCY gave you, and every CLD command flows
+through your wrapper.
+
+Not this kind if:
+- you are producing the toolpath, not editing it → `type-operation-solver.mdc`;
+- you want to post-process the final NC text → that is a postprocessor job, not an extension;
+- you want a user-triggered one-off action → `type-utility.mdc`.
+
+## Register it
+
+The key is `geom_cldata_converter`, and the filter decides which operations you touch:
+
+```json
+{
+  "name": "My CLData converter",
+  "description": "What it changes",
+  "module_path": "${extensionJsonFolder}/MyExtension.dll",
+  "extensions": [
+    {
+      "geom_cldata_converter": {
+        "id": "Extension.GeomCLDataConverter.MyExtension",
+        "filterOperationTypes": {
+          "filter_type": "exact",
+          "operation_types": ["TST2DContouringOp"]
+        }
+      }
+    }
+  ]
+}
+```
+
+- `filter_type: "exact"` + `operation_types` — only those operation types (the shipping example uses
+  exactly this snake_case spelling; the upstream reference calls the same fields `FilterType` /
+  `OperationTypes`).
+- `filter_type: "all"` — every operation in the project goes through your wrapper.
+- `id` must match the branch in `CAMAPI.ExtensionFactory.Create`.
+
+## Interface
+
+```csharp
+public interface IExtensionGeomCLDataConverter
+{
+    ICamApiCLDReceiver? GetCLDReceiverWrapper(ICamApiTechOperation operation,
+                                              ICamApiCLDReceiver receiver,
+                                              out TResultStatus ret);
+    void FinalizeConverter();
+}
+```
+
+You do **not** implement `ICamApiCLDReceiver` from scratch: the SDK ships
+`CLDRecevierWrapperDefault` (yes, that is how the type is spelled) which delegates every command to the
+wrapped receiver. Derive from it and override only the commands you change, calling `base.…` at the end.
+
+## Skeleton
+
+```csharp
+using CAMAPI.DotnetHelper;
+using CAMAPI.Extensions;
+using CAMAPI.MCDFormerTypes;
+using CAMAPI.ResultStatus;
+using CAMAPI.TechOperation;
+using STTypes;
+
+namespace MyExtension;
+
+public class MyCLDataConverter : IExtension, IExtensionGeomCLDataConverter
+{
+    public IExtensionInfo? Info { get; set; }
+
+    private ICamApiCLDReceiver? _wrapper;
+
+    public ICamApiCLDReceiver? GetCLDReceiverWrapper(ICamApiTechOperation operation,
+                                                    ICamApiCLDReceiver receiver,
+                                                    out TResultStatus ret)
+    {
+        ret = default;
+        try
+        {
+            if (receiver == null)
+                throw new Exception("Receiver is null");
+            _wrapper = new MyWrapper(receiver);
+            return _wrapper;
+        }
+        catch (Exception e)
+        {
+            ret.Code = TResultStatusCode.rsError;
+            ret.Description = e.Message;
+            return null;
+        }
+    }
+
+    public void FinalizeConverter()
+    {
+        if (_wrapper is IDisposable disposable)
+        {
+            disposable.Dispose();
+            _wrapper = null;
+        }
+    }
+}
+
+/// Lifts working moves; everything else passes through untouched.
+public class MyWrapper : CLDRecevierWrapperDefault
+{
+    private int _currentFeed = (int)TFeedTypeFlag.affWorking;
+
+    public MyWrapper(ICamApiCLDReceiver receiver) : base(receiver) { }
+
+    public override void OutStandardFeed(int feed)
+    {
+        _currentFeed = feed;
+        base.OutStandardFeed(feed);
+    }
+
+    public override void CutTo(TST3DPoint p)
+    {
+        if (_currentFeed == (int)TFeedTypeFlag.affWorking)
+            p.Z += 20;
+        base.CutTo(p);
+    }
+}
+```
+
+## Gotchas
+
+- **Every override must call `base`** (or deliberately drop the command). A forgotten `base.CutTo(p)`
+  silently deletes part of the toolpath — the operation still "calculates fine".
+- **Track feed state yourself.** Whether a move is rapid, plunge or working is carried by the preceding
+  `OutStandardFeed`/`OutFeed`/`OutPercentFeed` — override those to know what a `CutTo` means.
+- **`receiver == null` is an error, not a silent `null` return.** Returning `null` without a status
+  tells ENCY nothing.
+- **`filter_type: "all"` puts your code in every operation of every project.** Filter narrowly unless
+  you really mean it.
+- **This is the hot path of calculation.** No dialogs, no per-command logging, no allocations you can
+  avoid; a slow wrapper makes ENCY feel broken.
+- **Release the wrapper in `FinalizeConverter`** — it holds a COM reference to the downstream receiver.
+
+## Go deeper
+
+- Upstream reference: `cam-api-examples/docs/general/extension-entry-points.md` →
+  "IExtensionTypeInfoGeomCLDataConverter → IExtensionGeomCLDataConverter"; CLD semantics:
+  `docs/api/nc-simulation.md`.
+- Working example: `CLData/ExtensionGeomCLDataConverterNet` — `ExtensionGeomCLDataConverter.cs` plus
+  `CLDReceiverWrapperCustom.cs`, which is the `CLDRecevierWrapperDefault` subclass this guide mirrors.
+- Repo: <https://github.com/EncySoftware/cam-api-examples>
+- In the store this lands as type `geom_cldata_converter`.

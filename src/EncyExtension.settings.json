@@ -1,0 +1,14 @@
+{
+    "name": "EncyExtension",
+    "description": "Describe what your extension does",
+    "module_path": "${extensionJsonFolder}/EncyExtension.dll",
+    "extensions": [
+        {
+            "utility": {
+                "name": "EncyExtension",
+                "caption": "EncyExtension",
+                "id": "Extension.Utility.EncyExtension"
+            }
+        }
+    ]
+}

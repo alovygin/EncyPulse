@@ -1,0 +1,62 @@
+# Runs ONCE, on the first push to a fresh copy of this template, and renames the placeholder
+# extension to the repository's own name — then deletes itself.
+#
+# It replaces a manual `.\rename.ps1 -Name MyExtension` step. GitHub already knows what the author
+# called their repository, so asking them to type the same name again was a step that could only be
+# forgotten or mistyped. Nothing here runs on the template repository itself, and nothing runs a
+# second time: the guard is the placeholder file still being present.
+
+name: bootstrap-extension-name
+
+on:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write        # commit the rename back
+
+jobs:
+  rename:
+    # Never rename the template itself — it must keep its placeholder for everyone else.
+    if: github.repository != 'EncySoftware/ency-extension-template'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rename the extension to this repository's name
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # The only "have I run already?" check that cannot go stale: the placeholder itself.
+          if [[ ! -f src/EncyExtension.csproj ]]; then
+            echo "Already renamed — nothing to do."
+            exit 0
+          fi
+
+          # my-cool-extension -> MyCoolExtension. A C# class and a NuGet id cannot hold the dashes
+          # and spaces a repository name may have, so the parts are capitalised and joined.
+          raw="${GITHUB_REPOSITORY#*/}"
+          name="$(printf '%s' "$raw" | awk -F'[^A-Za-z0-9]+' \
+            '{for (i = 1; i <= NF; i++) printf "%s%s", toupper(substr($i, 1, 1)), substr($i, 2)}')"
+
+          if [[ ! "$name" =~ ^[A-Za-z][A-Za-z0-9]*$ ]]; then
+            echo "::warning title=Rename skipped::'$raw' does not make a usable extension name. Rename src/ by hand."
+            exit 0
+          fi
+
+          git mv "src/EncyExtension.csproj"        "src/$name.csproj"
+          git mv "src/EncyExtension.settings.json" "src/$name.settings.json"
+          # Only src/: the README talks ABOUT the placeholder, and rewriting a workflow mid-run is
+          # a good way to confuse both git and the next reader.
+          grep -rl 'EncyExtension' src | xargs -r sed -i "s/EncyExtension/$name/g"
+
+          # The manual script and this workflow have both done their job now.
+          git rm -q --ignore-unmatch rename.ps1
+          git rm -q .github/workflows/bootstrap.yml
+
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git commit -qam "Rename the extension to $name"
+          git push
+          echo "::notice title=Renamed::The extension is now called $name. Pull before you start editing."

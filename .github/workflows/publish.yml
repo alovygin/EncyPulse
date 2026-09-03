@@ -1,0 +1,127 @@
+# Publish to the ENCY Extension Store, two ways:
+#   * push a version tag (v1.2.3), or
+#   * Actions -> publish-to-ency-store -> "Run workflow" and just press the button: the version is the
+#     next patch after the latest tag, and the run tags the commit for you.
+#
+# Auth: no secret is needed once the repository is registered as the extension's trusted publisher -
+# the workflow authenticates with its own GitHub OIDC token. Register it in the store under
+# My published -> "Connect a GitHub repository", or from a terminal with
+# `ency-extension-mcp claim <PackageId> <owner/repo>` (see README). The ENCY_STORE_TOKEN secret
+# below is a legacy fallback for repositories registered before either of those existed; leaving it
+# unset is the normal case.
+
+name: publish-to-ency-store
+
+on:
+  push:
+    tags: ['v*']          # v1.2.3 publishes version 1.2.3
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (leave empty for the next patch after the latest tag)'
+        type: string
+        default: ''
+      category:
+        description: 'Storefront category (leave empty to keep the current one, or let a moderator sort it)'
+        type: string
+        default: ''
+      dry-run:
+        description: Validate the package on the server but publish nothing
+        type: boolean
+        default: false
+
+permissions:
+  contents: write          # tag the commit that a manual run publishes
+  id-token: write          # lets the run prove its identity to the store (OIDC trusted publishing)
+
+jobs:
+  publish:
+    runs-on: windows-latest    # net10.0-windows target; pure net10.0 could use ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # tags are needed to work out the next version
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # dotnet build (NOT publish) keeps the output flat; the PackReady target then sweeps the
+      # SDK doc-xmls out, leaving exactly the files that belong in the store package.
+      - name: Build
+        id: build
+        shell: bash
+        # Kept so a failure can be reported with the compiler's own words instead of just "Build".
+        # GitHub runs bash with -eo pipefail, so tee does not swallow a failed build.
+        run: dotnet build src -c Release -t:PackReady 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      # Tag push -> that version. Manual run -> the version you typed, or the next patch after the
+      # latest v-tag (no tags yet: 0.1.0), so pressing "Run workflow" with empty inputs just works.
+      - name: Resolve version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" == v* ]]; then
+            v="${GITHUB_REF_NAME#v}"
+          elif [[ -n "${{ inputs.version }}" ]]; then
+            v="$(echo '${{ inputs.version }}' | sed 's/^v//')"
+          else
+            last="$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1)"
+            if [[ -z "$last" ]]; then
+              v="0.1.0"
+            else
+              IFS=. read -r maj min patch <<< "${last#v}"
+              v="${maj}.${min}.$((patch + 1))"
+            fi
+            echo "latest tag: ${last:-none} -> publishing $v"
+          fi
+          if [[ ! "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$v' is not a semver version"
+            exit 1
+          fi
+          echo "PKG_VERSION=$v" >> "$GITHUB_ENV"
+
+      # Keep the history honest: a manual publish gets the same tag a manual push would have created.
+      # Pushed with the workflow token on purpose - that never re-triggers this workflow.
+      - name: Tag this commit
+        if: github.event_name == 'workflow_dispatch' && inputs.dry-run != true
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git rev-parse "v$PKG_VERSION" >/dev/null 2>&1; then
+            echo "::error::tag v$PKG_VERSION already exists - pass a different version"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$PKG_VERSION" -m "Release v$PKG_VERSION"
+          git push origin "v$PKG_VERSION"
+
+      # The build output goes to the store backend, which packs the .nupkg itself —
+      # no packing tool needed on the runner.
+      - name: Publish to the ENCY store
+        id: publish
+        uses: EncySoftware/publish-extension-action@v1
+        with:
+          token: ${{ secrets.ENCY_STORE_TOKEN }}
+          folder: src/bin/Release
+          version: ${{ env.PKG_VERSION }}
+          # Empty on a tag push, and empty is silence: the store keeps the category the extension
+          # already has. Ids: https://apps.encycam.com/api/categories
+          category: ${{ github.event_name == 'workflow_dispatch' && inputs.category || '' }}
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
+
+      - name: Card link
+        shell: bash
+        run: echo "Published ${{ steps.publish.outputs.package-id }} ${{ steps.publish.outputs.version }} -> ${{ steps.publish.outputs.card-url }}"
+
+      # Anything that fails BEFORE the publish action — a compile error, most often — never reaches
+      # that action, so it could never be reported. This is the one place that can say so, and the
+      # author reads it on the extension's page instead of coming here to look.
+      - name: Tell the store this run failed
+        if: failure()
+        uses: EncySoftware/publish-extension-action/report@v1
+        with:
+          status: FAILED
+          failed-step: ${{ steps.build.outcome == 'failure' && 'Build' || 'Publish' }}
+          log-file: ${{ runner.temp }}/build.log

@@ -1,0 +1,128 @@
+---
+description: Run code once when ENCY starts and once when it shuts down; no UI of its own
+alwaysApply: false
+---
+
+<!-- Generated from guides/global.md in EncySoftware/ency-extension-mcp.
+     Edit it there and run tools/sync-rules.ps1 - changes made here are overwritten. -->
+
+# Global extension — `IExtensionGlobal`
+
+## When to use
+
+Code must run **without anyone clicking anything**: once while ENCY starts, once while it shuts down.
+Typical work: start a background service, subscribe to application-level events, warm a cache, read a
+company config, register something other extensions rely on later.
+
+Not this kind if:
+- the user is supposed to trigger the action → `type-utility.mdc`;
+- you only need a menu entry somewhere → the popup guides (`type-operation-popup.mdc`,
+  `type-geom-node-popup.mdc`).
+
+A global extension has no UI surface of its own. If it opens a window on startup, users cannot get rid
+of it — think twice.
+
+## Register it
+
+The key is `Global` (upstream examples capitalise it; ENCY matches case-insensitively):
+
+```json
+{
+  "name": "My startup hooks",
+  "description": "What it does",
+  "module_path": "${extensionJsonFolder}/MyExtension.dll",
+  "extensions": [
+    {
+      "Global": {
+        "id": "Extension.Global.MyExtension",
+        "name": "Runs on application start and finish"
+      }
+    }
+  ]
+}
+```
+
+No `caption`/`icon_path` — nothing is drawn. The `id` must match the branch in the factory:
+
+```csharp
+// src/ExtensionFactory.cs — class stays CAMAPI.ExtensionFactory
+"Extension.Global.MyExtension" => new GlobalExtension(),
+```
+
+## Interface
+
+```csharp
+public interface IExtension       { IExtensionInfo? Info { get; set; } }
+public interface IExtensionGlobal { TResultStatus OnSCInitializing();
+                                   TResultStatus OnSCFinalizing(); }
+```
+
+No context is handed to you. Reach the application through `ICamApiApplicationSingleton` (the
+singleton mechanism) when you need `ICamApiApplication` — active project, extension manager, tools
+manager, machines library, utility manager, macro manager.
+
+## Skeleton
+
+```csharp
+using CAMAPI.Application;
+using CAMAPI.Extensions;
+using CAMAPI.ResultStatus;
+
+namespace MyExtension;
+
+public class GlobalExtension : IExtension, IExtensionGlobal
+{
+    public IExtensionInfo? Info { get; set; }
+
+    public TResultStatus OnSCInitializing()
+    {
+        TResultStatus status = default;
+        try
+        {
+            // Cheap setup only. Reach the app via ICamApiApplicationSingleton if needed.
+        }
+        catch (Exception e)
+        {
+            status.Code = TResultStatusCode.rsError;
+            status.Description = e.Message;
+        }
+        return status;
+    }
+
+    public TResultStatus OnSCFinalizing()
+    {
+        TResultStatus status = default;
+        try
+        {
+            // Release everything taken in OnSCInitializing: timers, COM refs, files, sockets.
+        }
+        catch (Exception e)
+        {
+            status.Code = TResultStatusCode.rsError;
+            status.Description = e.Message;
+        }
+        return status;
+    }
+}
+```
+
+## Gotchas
+
+- **`OnSCInitializing` holds ENCY's startup.** No network calls, no heavy scans, no dialogs — move
+  work to a background task and let the application finish starting.
+- **The UI may not exist yet.** Anything window-related on this stage is a race; do it lazily on
+  first use instead.
+- **Symmetry is on you.** Whatever `OnSCInitializing` takes, `OnSCFinalizing` must release — a leaked
+  COM reference or a live timer keeps the library loaded and blocks reinstall/update.
+- **Exceptions must not leave either method.** Catch and report via `TResultStatus`
+  (`TResultStatusCode.rsError`).
+- **One global per dll is normally enough.** Multiple globals in one library just multiply startup
+  cost; use one and dispatch internally.
+
+## Go deeper
+
+- Upstream reference: `cam-api-examples/docs/general/extension-entry-points.md` →
+  "IExtensionTypeInfoGlobal → IExtensionGlobal"; application surface: `docs/api/application.md`.
+- Working example: `ExtensionGlobal/ExtensionGlobalNet/project/main/ExtensionGlobal.cs`.
+- Repo: <https://github.com/EncySoftware/cam-api-examples>
+- In the store this lands as type `global`.

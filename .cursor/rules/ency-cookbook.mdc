@@ -1,0 +1,128 @@
+---
+description: Cross-cutting rules for any extension: COM lifetime, error handling, parameter input, windows
+alwaysApply: false
+---
+
+<!-- Generated from guides/cookbook.md in EncySoftware/ency-extension-mcp.
+     Edit it there and run tools/sync-rules.ps1 - changes made here are overwritten. -->
+
+# ENCY extension cookbook — rules that apply to every entry point
+
+Whatever kind of extension you write, these four topics decide whether it is stable. Each section is
+the short version; the upstream doc it links to is the long one.
+
+## 1. COM lifetime — `ComWrapper<T>`
+
+Every object you get from the ENCY API is a COM object living in the host process. Hold one raw and you
+pin ENCY objects and block your own library from unloading.
+
+```csharp
+using var appCom = ComWrapper.Create(context.CamApplication);   // takes ownership; null-safe
+if (appCom.IsNull) throw new Exception("No application");
+
+// method with no COM result (or a plain .NET result)
+appCom.Invoke(app => app.SomeVoidCall());
+string exe = appCom.Invoke(app => app.ExecutablePath);
+
+// method returning another COM object -> wrapped, ownership transferred
+using var techCom = appCom.InvokeAndWrap(app => app.Technologist);
+
+// method returning (result, TResultStatus) -> throws on rsError, no manual check
+string id = techCom.Invoke(t => (t.CreateOperation("TSTFaceMillingOp", prevId, "", out var s), s));
+```
+
+- `ComWrapper.Create(x)` is the shorthand for `new ComWrapper<T>(x)`; both accept null and give you an
+  empty wrapper with `IsNull == true`.
+- `ListComWrapper<T>` is the same idea for collections and **takes ownership on `Add`** — do not
+  dispose what you added.
+- One owner per object. If you hand a COM object to a window that will outlive the call, do **not**
+  wrap it in `using` — let the window's `Dispose()` be the single release point.
+
+Long version: `cam-api-examples/docs/general/com-lifetime.md`.
+
+## 2. Errors — `TResultStatus`, never exceptions
+
+```csharp
+resultStatus = default;
+try
+{
+    // work
+}
+catch (Exception e)
+{
+    resultStatus.Code = TResultStatusCode.rsError;
+    resultStatus.Description = e.Message;   // the user reads this
+}
+```
+
+- **No exception may cross the COM boundary.** Every entry-point method catches everything and reports
+  through its status (`TResultStatus`, or `IPLMResult` for PLM).
+- **Check the status of calls that hand you one.** Many API methods report through `out TResultStatus`
+  or `ref TExecuteContext` instead of throwing; an ignored `rsError` reads as success and corrupts the
+  next step. `ComWrapper`'s status-aware `Invoke`/`InvokeAndWrap` overloads throw for you.
+- **Non-fatal conditions go to the log, not the status:** `context.Logger?.Log(TLogEventType.leWarning,
+  "MyPlugin", "No geometry selected")` — `IExtensionLogger` writes to the ENCY log window. For
+  something the user must notice, `UIDialogs.Notify(TLogEventType.leInfo, "MyPlugin", "Done")`.
+- **A user cancelling a dialog is not an error** — return the default status.
+
+Long version: `cam-api-examples/docs/general/error-handling.md`.
+
+## 3. Asking the user for parameters
+
+Prefer the **inspector dialog** (`CamApiInspectorWindow` + `SimplePropIterator` from
+`CAMAPI.UIDialogs`): a native ENCY-style property grid, no WPF, no XAML, no threading rules to obey. It
+looks like the rest of ENCY, which is what users expect.
+
+Reach for your own window only when the input genuinely needs a custom UI (charts, previews, trees).
+
+Long version: `cam-api-examples/docs/general/ui-patterns.md` (Pattern 1).
+
+## 4. Windows — STA, COM and unloading
+
+ENCY's .NET bridge runs **MTA**; WPF/WinForms need **STA**. Two cases:
+
+**Modal (the call waits for the answer).** Create a dedicated STA thread, `Join` it, capture the result
+through a closure:
+
+```csharp
+var names = GetOperationNames(context);        // read COM data HERE, on the MTA thread
+string? picked = null;
+var t = new Thread(() => { var w = new PickWindow(names); if (w.ShowDialog() == true) picked = w.Selected; });
+t.SetApartmentState(ApartmentState.STA);
+t.Start();
+t.Join();
+```
+
+**Critical:** do not touch COM objects inside the STA lambda — read what you need before, pass plain
+.NET values in.
+
+**Non-modal (the window outlives the call).** The library must not be unloaded while it is on screen:
+implement `IExtensionLazyUnloadable` and keep `CanUnload == false` until the window closes. Easiest
+correct version is `ExtensionWindowLazyUnloadable` (from `CAMAPI.DotnetHelper`), which owns the HWND,
+the `WindowHelper.ShowStaWindow` call and the `CanUnload` bookkeeping:
+
+```csharp
+public class MyExtension : IExtension, IExtensionUtility, IExtensionLazyUnloadable
+{
+    private readonly ExtensionWindowLazyUnloadable _windowManager = new();
+    public IExtensionInfo? Info { get; set; }
+    public bool CanUnload { get => _windowManager.CanUnload; set { } }
+}
+```
+
+`WindowHelper.ShowStaWindow(ownerHandle, createWindow, onClosed, onException)` starts the STA thread,
+runs a dispatcher, disposes the window on close and routes STA-thread exceptions to your handler.
+
+Classic ways to crash the host:
+- `using` on a COM object handed to a long-lived window (disposed when `Run` returns → dead reference);
+- skipping `IExtensionLazyUnloadable`, or reporting `CanUnload = true` while the window is open;
+- calling COM from the UI thread through `.Instance` instead of `ComWrapper.Invoke`;
+- disposing the same COM object both in `Run` and in the window's `Dispose()`.
+
+Long version: `cam-api-examples/docs/general/non-modal-window.md` and `ui-patterns.md` (Patterns 2-3).
+
+## Where the rest of the API is documented
+
+`cam-api-examples/docs/api/`: `overview.md`, `application.md`, `project.md`, `geometry.md`,
+`tools-machine.md`, `nc-simulation.md`, `ui.md`, `entry-points.md`.
+Repo: <https://github.com/EncySoftware/cam-api-examples>
